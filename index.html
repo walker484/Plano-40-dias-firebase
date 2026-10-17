@@ -7,6 +7,7 @@
 
 <style>
 *{box-sizing:border-box}
+
 body{
   margin:0;
   padding:20px 12px;
@@ -14,20 +15,68 @@ body{
   color:#222;
   font:15px Arial,sans-serif
 }
+
 main{max-width:760px;margin:auto}
-h1{font-size:24px;color:#174ea6;margin-bottom:5px}
-.subtitulo{color:#666;margin-bottom:25px}
+
+.cabecalho{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:5px;
+}
+
+.logo-coruja{
+  width:76px;
+  height:76px;
+  object-fit:contain;
+  flex-shrink:0;
+}
+
+h1{
+  font-size:24px;
+  color:#174ea6;
+  margin:0
+}
+
+.subtitulo{
+  color:#666;
+  margin-bottom:25px
+}
+
 .total{
   border-top:2px solid #222;
   border-bottom:2px solid #222;
   padding:15px 0;
   margin-bottom:20px
 }
-.total span{display:block;font-size:13px;margin-bottom:8px}
-.total strong{font-size:30px;color:#174ea6}
-.info{line-height:1.8;margin-bottom:25px}
-h2{font-size:18px;margin-top:25px}
-label{display:block;font-weight:bold;margin:13px 0 6px}
+
+.total span{
+  display:block;
+  font-size:13px;
+  margin-bottom:8px
+}
+
+.total strong{
+  font-size:30px;
+  color:#174ea6
+}
+
+.info{
+  line-height:1.8;
+  margin-bottom:25px
+}
+
+h2{
+  font-size:18px;
+  margin-top:25px
+}
+
+label{
+  display:block;
+  font-weight:bold;
+  margin:13px 0 6px
+}
+
 input,select,button{
   width:100%;
   padding:12px;
@@ -36,6 +85,7 @@ input,select,button{
   background:white;
   font-size:15px
 }
+
 button{
   background:#174ea6;
   color:white;
@@ -43,25 +93,65 @@ button{
   font-weight:bold;
   margin-top:14px
 }
-table{width:100%;border-collapse:collapse;font-size:12px}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:12px
+}
+
 th,td{
   padding:11px 4px;
   text-align:left;
   border-bottom:1px solid #ddd
 }
+
 th{border-bottom:2px solid #333}
+
 .entrada{color:#176b37}
 .saida{color:#b42318}
+
 .tabela{overflow-x:auto}
-.aviso{font-size:12px;color:#666;line-height:1.5}
-#status{font-size:12px;color:#555;margin:12px 0}
+
+.aviso{
+  font-size:12px;
+  color:#666;
+  line-height:1.5
+}
+
+#status{
+  font-size:12px;
+  color:#555;
+  margin:12px 0
+}
+
+@media(max-width:400px){
+  .logo-coruja{
+    width:62px;
+    height:62px
+  }
+
+  h1{font-size:21px}
+}
 </style>
 </head>
 
 <body>
 <main>
 
-  <h1>🦉 WALKER POUPE</h1>
+  <!-- LOGO DA CORUJA: TROQUE O ENDEREÇO AQUI -->
+  <header class="cabecalho">
+
+    <img
+      class="logo-coruja"
+      src="https://raw.githubusercontent.com/walker484/40-dias-teste/refs/heads/main/file_0000000060c0820e985d5b3957216717.png"
+      alt="Coruja Walker Poupe"
+    >
+
+    <h1>WALKER POUPE</h1>
+
+  </header>
+
   <div class="subtitulo">Meu livro financeiro</div>
 
   <div class="total">
@@ -125,6 +215,7 @@ th{border-bottom:2px solid #333}
     >
 
     <button type="submit">LANÇAR NO LIVRO</button>
+
   </form>
 
   <p class="aviso">
