@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Walker Poupe</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  padding:20px 12px;
+  background:white;
+  color:#222;
+  font:15px Arial,sans-serif
+}
+main{max-width:760px;margin:auto}
+h1{font-size:24px;color:#174ea6;margin-bottom:5px}
+.subtitulo{color:#666;margin-bottom:25px}
+.total{
+  border-top:2px solid #222;
+  border-bottom:2px solid #222;
+  padding:15px 0;
+  margin-bottom:20px
+}
+.total span{display:block;font-size:13px;margin-bottom:8px}
+.total strong{font-size:30px;color:#174ea6}
+.info{line-height:1.8;margin-bottom:25px}
+h2{font-size:18px;margin-top:25px}
+label{display:block;font-weight:bold;margin:13px 0 6px}
+input,select,button{
+  width:100%;
+  padding:12px;
+  border:1px solid #aaa;
+  border-radius:3px;
+  background:white;
+  font-size:15px
+}
+button{
+  background:#174ea6;
+  color:white;
+  border:0;
+  font-weight:bold;
+  margin-top:14px
+}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{
+  padding:11px 4px;
+  text-align:left;
+  border-bottom:1px solid #ddd
+}
+th{border-bottom:2px solid #333}
+.entrada{color:#176b37}
+.saida{color:#b42318}
+.tabela{overflow-x:auto}
+.aviso{font-size:12px;color:#666;line-height:1.5}
+#status{font-size:12px;color:#555;margin:12px 0}
+</style>
+</head>
+
+<body>
+<main>
+
+  <h1>🦉 WALKER POUPE</h1>
+  <div class="subtitulo">Meu livro financeiro</div>
+
+  <div class="total">
+    <span>SALDO TOTAL</span>
+    <strong id="saldo">Carregando...</strong>
+  </div>
+
+  <div class="info">
+    <b>Início:</b> 12/10/2026<br>
+    <b>Saldo inicial:</b> R$ 118,00<br>
+    <b>Entrada diária:</b> R$ 180,00<br>
+    <b>Horário previsto:</b> 15:00
+  </div>
+
+  <div id="status">Conectando ao Firebase...</div>
+
+  <h2>Livro de movimentações</h2>
+
+  <div class="tabela">
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Descrição</th>
+          <th>Entrada</th>
+          <th>Saída</th>
+          <th>Saldo</th>
+        </tr>
+      </thead>
+      <tbody id="historico"></tbody>
+    </table>
+  </div>
+
+  <h2>Lançar saída ou entrada</h2>
+
+  <form id="formulario">
+
+    <label for="data">Data</label>
+    <input type="date" id="data" required>
+
+    <label for="descricao">Descrição</label>
+    <input
+      id="descricao"
+      placeholder="Ex.: aluguel, água, comida"
+      required
+    >
+
+    <label for="tipo">Tipo</label>
+    <select id="tipo">
+      <option value="saida">Saída — descontar</option>
+      <option value="entrada">Entrada — adicionar</option>
+    </select>
+
+    <label for="valor">Valor em reais</label>
+    <input
+      type="number"
+      id="valor"
+      min="0.01"
+      step="0.01"
+      required
+    >
+
+    <button type="submit">LANÇAR NO LIVRO</button>
+  </form>
+
+  <p class="aviso">
+    O histórico exibido começa em 12/10/2026. Os registros anteriores
+    continuam guardados no Firebase. As entradas diárias são calculadas
+    nesta página e não são gravadas automaticamente no banco.
+    Para registrar entradas às 15h mesmo com a página fechada,
+    é necessária uma tarefa agendada no servidor.
+  </p>
+
+</main>
+
+<script type="module">
+
+import { initializeApp } from
+"https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  orderBy,
+  where
+} from
+"https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCL6zN5WSnqpjCg4gkmAJPurFrlMWEonco",
+  authDomain: "banco-dados-94bb6.firebaseapp.com",
+  projectId: "banco-dados-94bb6",
+  storageBucket: "banco-dados-94bb6.firebasestorage.app",
+  messagingSenderId: "496860851807",
+  appId: "1:496860851807:web:3e830aabc6463dd51275ea"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const INICIO = "2026-10-12";
+const INICIAL = 118;
+const DIARIA = 180;
+
+const $ = id => document.getElementById(id);
+
+
+function hoje() {
+  const d = new Date();
+
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+
+function br(data) {
+  const [a,m,d] = data.split("-");
+  return `${d}/${m}/${a}`;
+}
+
+
+function dinheiro(n) {
+  return Number(n).toLocaleString("pt-BR", {
+    style:"currency",
+    currency:"BRL"
+  });
+}
+
+
+function diaUtil(data) {
+  const [a,m,d] = data.split("-").map(Number);
+  const dia = new Date(a,m-1,d).getDay();
+
+  return dia !== 0 && dia !== 6;
+}
+
+
+function passouDas15(data) {
+  const agora = new Date();
+
+  return data < hoje() ||
+    (data === hoje() && agora.getHours() >= 15);
+}
+
+
+/* LÊ SOMENTE MOVIMENTAÇÕES A PARTIR DE 12/10/2026 */
+async function lerMovimentos() {
+
+  const snap = await getDocs(
+    query(
+      collection(db, "movimentacoes"),
+      where("data", ">=", INICIO),
+      orderBy("data")
+    )
+  );
+
+  return snap.docs
+    .map(d => ({id:d.id, ...d.data()}))
+    .filter(x =>
+      typeof x.data === "string" &&
+      x.data >= INICIO
+    );
+}
+
+
+/* CALCULA AS ENTRADAS DIÁRIAS */
+function gerarEntradasAutomaticas() {
+
+  const lista = [];
+
+  if (hoje() < INICIO) return lista;
+
+  const data = new Date(INICIO + "T12:00:00");
+  const limite = new Date(hoje() + "T12:00:00");
+
+  while (data <= limite) {
+
+    const formato =
+      `${data.getFullYear()}-${String(data.getMonth()+1).padStart(2,"0")}-${String(data.getDate()).padStart(2,"0")}`;
+
+    if (diaUtil(formato) && passouDas15(formato)) {
+
+      lista.push({
+        id:"automatica-" + formato,
+        data:formato,
+        descricao:"Entrada diária",
+        tipo:"entrada",
+        valor:DIARIA,
+        automatica:true
+      });
+
+    }
+
+    data.setDate(data.getDate()+1);
+  }
+
+  return lista;
+}
+
+
+/* ATUALIZA O LIVRO */
+async function atualizar() {
+
+  $("status").textContent = "Carregando lançamentos...";
+
+  const salvos = await lerMovimentos();
+
+  const lista = [
+
+    {
+      id:"saldo-inicial",
+      data:INICIO,
+      descricao:"Saldo inicial",
+      tipo:"entrada",
+      valor:INICIAL,
+      automatica:true,
+      ordem:0
+    },
+
+    ...gerarEntradasAutomaticas().map(x => ({
+      ...x,
+      ordem:1
+    })),
+
+    ...salvos.map((x,i) => ({
+      ...x,
+      ordem:i+2
+    }))
+
+  ];
+
+  lista.sort((a,b) =>
+    a.data.localeCompare(b.data) ||
+    a.ordem-b.ordem
+  );
+
+  let saldo = 0;
+
+  const corpo = $("historico");
+  corpo.innerHTML = "";
+
+  for (const item of lista) {
+
+    saldo += item.tipo === "saida"
+      ? -Number(item.valor)
+      : Number(item.valor);
+
+    const tr = document.createElement("tr");
+
+    const valores = [
+      br(item.data),
+      item.descricao || "Movimentação",
+      item.tipo === "entrada"
+        ? dinheiro(item.valor) : "—",
+      item.tipo === "saida"
+        ? dinheiro(item.valor) : "—",
+      dinheiro(saldo)
+    ];
+
+    valores.forEach((v,i) => {
+
+      const td = document.createElement("td");
+      td.textContent = v;
+
+      if (i === 2 && item.tipo === "entrada") {
+        td.className = "entrada";
+      }
+
+      if (i === 3 && item.tipo === "saida") {
+        td.className = "saida";
+      }
+
+      tr.appendChild(td);
+    });
+
+    corpo.appendChild(tr);
+  }
+
+  $("saldo").textContent = dinheiro(saldo);
+
+  $("status").textContent =
+    "Dados carregados do Firebase. Histórico desde 12/10/2026.";
+}
+
+
+/* DATA PADRÃO */
+$("data").value = hoje();
+
+
+/* SALVA ENTRADAS E SAÍDAS */
+$("formulario").addEventListener("submit", async e => {
+
+  e.preventDefault();
+
+  const data = $("data").value;
+  const descricao = $("descricao").value.trim();
+  const tipo = $("tipo").value;
+  const valor = Number($("valor").value);
+
+  if (
+    !data ||
+    !descricao ||
+    !Number.isFinite(valor) ||
+    valor <= 0
+  ) {
+    alert("Confira a data, descrição e valor.");
+    return;
+  }
+
+  if (data < INICIO) {
+    alert("A data deve ser igual ou posterior a 12/10/2026.");
+    return;
+  }
+
+  try {
+
+    await addDoc(collection(db, "movimentacoes"), {
+      data,
+      descricao,
+      tipo,
+      valor,
+      criadoEm: new Date().toISOString()
+    });
+
+    $("descricao").value = "";
+    $("valor").value = "";
+
+    await atualizar();
+
+    alert("Lançamento salvo no Firebase!");
+
+  } catch (erro) {
+
+    console.error(erro);
+
+    alert(
+      "Não foi possível salvar. Confira o Firestore e as regras de acesso."
+    );
+
+  }
+
+});
+
+
+/* INICIA A PÁGINA */
+try {
+
+  await atualizar();
+
+} catch (erro) {
+
+  console.error(erro);
+
+  $("status").textContent =
+    "Falha na conexão. Confira o Firestore e as regras de acesso.";
+
+}
+
+</script>
+</body>
+</html>
